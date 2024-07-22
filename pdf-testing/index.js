@@ -4,7 +4,6 @@
  * // Example description of how to use this file in terminal
  * node index.js
  * @note
- * This file is a part of the PDF Testing project.
  * This index.js file is only testing pdf-parse and fast-levenshtein libraries.
  */
 
