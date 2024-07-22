@@ -1,13 +1,27 @@
 const fs = require("fs");
 const path = require("path");
-const pdfParse = require("pdf-parse");
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const { get: levenshtein } = require("fast-levenshtein");
 
-// Function to read a PDF and extract text
-async function extractTextFromPDF(pdfPath) {
+// Function to read a PDF and extract text using pdf.js
+async function extractTextFromPDFJs(pdfPath) {
   const pdfBuffer = fs.readFileSync(pdfPath);
-  const pdfData = await pdfParse(pdfBuffer);
-  return pdfData.text;
+  const pdfData = new Uint8Array(pdfBuffer);
+  const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+  const maxPages = pdf.numPages;
+  const pageTextPromises = [];
+
+  for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+    pageTextPromises.push(
+      pdf.getPage(pageNo).then(async (page) => {
+        const textContent = await page.getTextContent();
+        return textContent.items.map((token) => token.str).join(" ");
+      })
+    );
+  }
+
+  const pageTexts = await Promise.all(pageTextPromises);
+  return pageTexts.join(" ");
 }
 
 // Function to calculate Levenshtein distance-based accuracy
@@ -101,14 +115,15 @@ async function evaluatePDFReaders() {
     }
 
     try {
-      const extractedText = await extractTextFromPDF(pdfFilePath);
+      const extractedText = await extractTextFromPDFJs(pdfFilePath);
       const targetText = fs.readFileSync(transcriptionFilePath, "utf8");
+
       const accuracy = calculateAccuracy(extractedText, targetText);
       const precision = calculatePrecision(extractedText, targetText);
       const recall = calculateRecall(extractedText, targetText);
       const f1Score = calculateF1Score(precision, recall);
       const wer = calculateWER(extractedText, targetText);
-      
+
       totalMetrics.accuracy += accuracy;
       totalMetrics.precision += precision;
       totalMetrics.recall += recall;
