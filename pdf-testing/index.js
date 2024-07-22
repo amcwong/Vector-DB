@@ -1,3 +1,10 @@
+/**
+ * @file index.js is the main file for evaluating PDF readers using a dataset of PDF files and their transcriptions.
+ * @example
+ * // Example description of how to use this file in terminal
+ * node index.js
+ */
+
 const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
