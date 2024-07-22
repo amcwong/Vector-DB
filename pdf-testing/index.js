@@ -18,38 +18,71 @@ function calculateAccuracy(extractedText, targetText) {
   return accuracy;
 }
 
+// Function to recursively read PDF and transcription directories
+function getPdfAndTranscriptionFiles(pdfDir, transcriptionDir) {
+  let files = [];
+  const pdfSubDirs = fs.readdirSync(pdfDir).filter((file) => fs.lstatSync(path.join(pdfDir, file)).isDirectory());
+
+  for (const subDir of pdfSubDirs) {
+    const pdfSubDirPath = path.join(pdfDir, subDir);
+    const transcriptionSubDirPath = path.join(transcriptionDir, `${subDir} Target`);
+
+    if (fs.existsSync(transcriptionSubDirPath)) {
+      const pdfFiles = fs.readdirSync(pdfSubDirPath).filter((file) => file.endsWith(".pdf"));
+
+      for (const pdfFile of pdfFiles) {
+        const pdfFilePath = path.join(pdfSubDirPath, pdfFile);
+        const transcriptionFileName = `${path.basename(pdfFile, ".pdf")} TARGET.txt`;
+        const transcriptionFilePath = path.join(transcriptionSubDirPath, transcriptionFileName);
+
+        files.push({
+          pdfFilePath,
+          transcriptionFilePath,
+          pdfFileName: pdfFile,
+          transcriptionFileName
+        });
+      }
+    } else {
+      console.warn(`Transcription directory not found for ${subDir}`);
+    }
+  }
+  return files;
+}
+
 // Main evaluation function
 async function evaluatePDFReaders() {
   const pdfDir = path.join(__dirname, "pdf-dataset");
   const transcriptionDir = path.join(__dirname, "transcription");
-  const pdfFiles = fs.readdirSync(pdfDir).filter((file) => file.endsWith(".pdf"));
+  const files = getPdfAndTranscriptionFiles(pdfDir, transcriptionDir);
   let totalAccuracy = 0;
   let fileCount = 0;
 
-  for (const pdfFile of pdfFiles) {
-    const pdfPath = path.join(pdfDir, pdfFile);
-    const transcriptionFileName = `${path.basename(pdfFile, ".pdf")} TARGET.txt`;
-    const transcriptionPath = path.join(transcriptionDir, transcriptionFileName);
+  for (const file of files) {
+    const { pdfFilePath, transcriptionFilePath, pdfFileName } = file;
 
-    if (!fs.existsSync(transcriptionPath)) {
-      console.warn(`Transcription file not found for ${pdfFile}`);
+    if (!fs.existsSync(transcriptionFilePath)) {
+      console.warn(`Transcription file not found for ${pdfFileName}`);
       continue;
     }
 
     try {
-      const extractedText = await extractTextFromPDF(pdfPath);
-      const targetText = fs.readFileSync(transcriptionPath, "utf8");
+      const extractedText = await extractTextFromPDF(pdfFilePath);
+      const targetText = fs.readFileSync(transcriptionFilePath, "utf8");
       const accuracy = calculateAccuracy(extractedText, targetText);
       totalAccuracy += accuracy;
       fileCount++;
-      console.log(`Accuracy for ${pdfFile}: ${accuracy.toFixed(2)}%`);
+      console.log(`Accuracy for ${pdfFileName}: ${accuracy.toFixed(2)}%`);
     } catch (error) {
-      console.error(`Error processing ${pdfFile}:`, error);
+      console.error(`Error processing ${pdfFileName}:`, error);
     }
   }
 
-  const averageAccuracy = totalAccuracy / fileCount;
-  console.log(`\nAverage Accuracy: ${averageAccuracy.toFixed(2)}%`);
+  if (fileCount === 0) {
+    console.log("No PDF files were processed. Please check if the transcription files exist and are correctly named.");
+  } else {
+    const averageAccuracy = totalAccuracy / fileCount;
+    console.log(`\nAverage Accuracy: ${averageAccuracy.toFixed(2)}%`);
+  }
 }
 
 evaluatePDFReaders();
