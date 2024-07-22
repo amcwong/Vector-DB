@@ -1,17 +1,7 @@
-/**
- * @file index.js is the main file for evaluating PDF readers using a dataset of PDF files and their transcriptions.
- * @example
- * // Example description of how to use this file in terminal
- * node index.js
- * @note
- * This file is a part of the PDF Testing project.
- * This index.js file is only testing pdf-parse and fast-levenshtein libraries.
- */
-
 const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
-const { get: levenshtein } = require("fast-levenshtein"); //Metrics: text comparison
+const { get: levenshtein } = require("fast-levenshtein");
 
 // Function to read a PDF and extract text
 async function extractTextFromPDF(pdfPath) {
@@ -26,6 +16,35 @@ function calculateAccuracy(extractedText, targetText) {
   const maxLength = Math.max(extractedText.length, targetText.length);
   const accuracy = (1 - distance / maxLength) * 100;
   return accuracy;
+}
+
+// Function to calculate Precision
+function calculatePrecision(extractedText, targetText) {
+  const truePositives = extractedText.split(' ').filter(word => targetText.includes(word)).length;
+  const predictedPositives = extractedText.split(' ').length;
+  return (truePositives / predictedPositives) * 100;
+}
+
+// Function to calculate Recall
+function calculateRecall(extractedText, targetText) {
+  const truePositives = extractedText.split(' ').filter(word => targetText.includes(word)).length;
+  const actualPositives = targetText.split(' ').length;
+  return (truePositives / actualPositives) * 100;
+}
+
+// Function to calculate F1 Score
+function calculateF1Score(precision, recall) {
+  if (precision + recall === 0) {
+    return 0;
+  }
+  return (2 * precision * recall) / (precision + recall);
+}
+
+// Function to calculate Word Error Rate
+function calculateWER(extractedText, targetText) {
+  const distance = levenshtein(extractedText, targetText);
+  const numWords = targetText.split(' ').length;
+  return (distance / numWords) * 100;
 }
 
 // Function to recursively read PDF and transcription directories
@@ -64,7 +83,13 @@ async function evaluatePDFReaders() {
   const pdfDir = path.join(__dirname, "pdf-dataset");
   const transcriptionDir = path.join(__dirname, "transcription");
   const files = getPdfAndTranscriptionFiles(pdfDir, transcriptionDir);
-  let totalAccuracy = 0;
+  let totalMetrics = {
+    accuracy: 0,
+    precision: 0,
+    recall: 0,
+    f1Score: 0,
+    wer: 0
+  };
   let fileCount = 0;
 
   for (const file of files) {
@@ -79,9 +104,24 @@ async function evaluatePDFReaders() {
       const extractedText = await extractTextFromPDF(pdfFilePath);
       const targetText = fs.readFileSync(transcriptionFilePath, "utf8");
       const accuracy = calculateAccuracy(extractedText, targetText);
-      totalAccuracy += accuracy;
+      const precision = calculatePrecision(extractedText, targetText);
+      const recall = calculateRecall(extractedText, targetText);
+      const f1Score = calculateF1Score(precision, recall);
+      const wer = calculateWER(extractedText, targetText);
+      
+      totalMetrics.accuracy += accuracy;
+      totalMetrics.precision += precision;
+      totalMetrics.recall += recall;
+      totalMetrics.f1Score += f1Score;
+      totalMetrics.wer += wer;
       fileCount++;
-      console.log(`Accuracy for ${pdfFileName}: ${accuracy.toFixed(2)}%`);
+      
+      console.log(`Metrics for ${pdfFileName}:`);
+      console.log(`Accuracy: ${accuracy.toFixed(2)}%`);
+      console.log(`Precision: ${precision.toFixed(2)}%`);
+      console.log(`Recall: ${recall.toFixed(2)}%`);
+      console.log(`F1 Score: ${f1Score.toFixed(2)}%`);
+      console.log(`Word Error Rate: ${wer.toFixed(2)}%\n`);
     } catch (error) {
       console.error(`Error processing ${pdfFileName}:`, error);
     }
@@ -90,8 +130,19 @@ async function evaluatePDFReaders() {
   if (fileCount === 0) {
     console.log("No PDF files were processed. Please check if the transcription files exist and are correctly named.");
   } else {
-    const averageAccuracy = totalAccuracy / fileCount;
-    console.log(`\nAverage Accuracy: ${averageAccuracy.toFixed(2)}%`);
+    const averageMetrics = {
+      accuracy: totalMetrics.accuracy / fileCount,
+      precision: totalMetrics.precision / fileCount,
+      recall: totalMetrics.recall / fileCount,
+      f1Score: totalMetrics.f1Score / fileCount,
+      wer: totalMetrics.wer / fileCount
+    };
+    console.log("Conclusion\nAverage Metrics:");
+    console.log(`Accuracy: ${averageMetrics.accuracy.toFixed(2)}%`);
+    console.log(`Precision: ${averageMetrics.precision.toFixed(2)}%`);
+    console.log(`Recall: ${averageMetrics.recall.toFixed(2)}%`);
+    console.log(`F1 Score: ${averageMetrics.f1Score.toFixed(2)}%`);
+    console.log(`Word Error Rate: ${averageMetrics.wer.toFixed(2)}%`);
   }
 }
 
