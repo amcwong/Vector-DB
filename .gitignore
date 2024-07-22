@@ -1,5 +1,8 @@
 Pinecone-DB/.env
 Time-Tables-Worksheet.pdf
 Pinecone-DB/__pycache__
-pdf-testing-dataset
+pdf-testing/node_modules
+pdf-testing/package-lock.json
+pdf-testing/pdf-testing-dataset
+pdf-testing/target
 target

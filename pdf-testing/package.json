@@ -1,0 +1,16 @@
+{
+  "name": "pdf-testing",
+  "version": "1.0.0",
+  "main": "pdf-testing.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "fast-levenshtein": "^3.0.0",
+    "pdf-parse": "^1.1.1"
+  }
+}
