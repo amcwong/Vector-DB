@@ -10,3 +10,7 @@ pdf-testing/pdf-dataset-cy
 Compiling Poetry Collections and a Working Definition of Poetry _ Read Write Think.pdf
 Pinecone-DB/cohereToPineconeTests/__pycache__/pinecone.cpython-312.pyc
 pdf-testing/base64-pdf-encoding/1.pdf
+Pinecone-DB/generateEmbedding/.env
+Pinecone-DB/generateEmbedding/cy-txt-data
+pdf-testing/pdf-adobe-transcription
+Pinecone-DB/generateEmbedding/adobe-txt-transcriptions
